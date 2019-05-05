@@ -23,7 +23,6 @@ def startSolver():
     pixels = image.load()
     mazeArray = []
     
-
     timeStart = time.time()
 
     for i in range(imageHeight):
@@ -35,29 +34,19 @@ def startSolver():
     print("--- Maze array creation = %s seconds ---" % (time.time() - timeStart))
 
     timeStart = time.time()
-
-
     newArr = findImportantPointsInMaze(mazeArray)
-
     print("--- Find important points = %s seconds ---" % (time.time() - timeStart))
     
     # Fill last seen array
-    
-
-    timeStart = time.time()
-
     lastSeenVertical = [(-1, -1)] * len(newArr)
 
-    # printArray(newArr)
+    timeStart = time.time()
 
     connectPoints(newArr)
 
     print("--- Connect Points = %s seconds ---" % (time.time() - timeStart))
 
     print("Number of loop Operations = " + str(loopOperations))
-
-    # for point in createdPoints:
-    #     print(point)
 
 
 def connectPointsSingle(arr, row, col):
@@ -134,8 +123,6 @@ def connectPoints(arr):
                         createdPoints[lastLeft[1]].setRight(createdPoints[len(createdPoints) - 1])
 
                 lastLeft = (col, len(createdPoints) - 1)
-                # print(col)
-                # print(lastSeenVertical)
                 
                 # If last seen vertical is -1, this is the first point in the col
                 if(lastSeenVertical[col][0] != -1):
