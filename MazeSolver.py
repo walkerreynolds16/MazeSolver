@@ -3,7 +3,7 @@ from Point import Point
 from collections import deque
 import time
 
-imagePath = "./Mazes/4999x4999.bmp"
+imagePath = "./Mazes/4999x4999.png"
 imageName = imagePath[8:-4]
 
 createdPoints = []
@@ -14,6 +14,9 @@ lastSeenVertical = [] # [(row, index in created points)]
 
 imageWidth = 0
 imageHeight = 0
+
+mazeStart = None
+mazeEnd = None
 
 def startSolver():
     # First, we need to import an image
@@ -26,46 +29,106 @@ def startSolver():
     image = Image.open(imagePath)
     imageWidth, imageHeight = image.size
 
-    pixels = image.load()
-    mazeArray = []
-    
     timeStart = time.time()
 
-    for i in range(imageHeight):
-        rowArray = []
-        for k in range(imageWidth):
-            rowArray.append(pixels[k, i])
-        mazeArray.append(rowArray)
+    # OLD STUFF
+    # pixels = image.load()
+    # mazeArray = []
+    # for i in range(imageHeight):
+    #     rowArray = []
+    #     for k in range(imageWidth):
+    #         rowArray.append(pixels[k, i])
+    #     mazeArray.append(rowArray)
+
+    pixels = list(image.getdata(0))
+    maze = newMazeCreation(pixels)
+
+    # for i in createdPoints:
+    #     print(i)
+
 
     print("--- Maze array creation = %s seconds ---" % (time.time() - timeStart))
 
-    timeStart = time.time()
-    newArr = findImportantPointsInMaze(mazeArray)
-    print("--- Find important points = %s seconds ---" % (time.time() - timeStart))
+    print("Node Count: " + str(len(createdPoints)))
     
-    # Fill last seen array
-    lastSeenVertical = [(-1, -1)] * len(newArr)
-
-    timeStart = time.time()
-
-    connectPoints(newArr)
-
-    print("--- Connect Points = %s seconds ---" % (time.time() - timeStart))
-
-    print("Number of loop Operations = " + str(loopOperations))
+    # print("Number of loop Operations = " + str(loopOperations))
 
     timeStart = time.time()
     path = breadthFirstSearch()
     print("--- Breadth First Search = %s seconds ---" % (time.time() - timeStart))
 
-
-    # for point in path:
-    #     print(point)
-
     # Save path to bitmap
     newImage = image.convert('RGB')
     newPixels = newImage.load()
     pathToBitmap(newImage, newPixels, path)
+
+
+def newMazeCreation(pixels):
+    global imageWidth, imageHeight
+    lLeft = None
+    aboveList = [None] * imageWidth
+    
+
+    for topRowIndex in range(imageWidth):
+        if(pixels[topRowIndex] == 255): # Start of the maze
+            newPoint = Point(0, topRowIndex)
+            newPoint.isStart = True
+            mazeStart = newPoint
+            aboveList[topRowIndex] = newPoint
+            createdPoints.append(newPoint)
+
+        # if(pixels[imageWidth * (imageHeight - 1) + topRowIndex] == 255): # End of the Maze
+        #     newPoint = Point(imageHeight - 1, topRowIndex)
+        #     newPoint.isFinish = True
+        #     mazeEnd = newPoint
+        #     createdPoints.append(newPoint)
+
+    for i in range(imageWidth, len(pixels)):
+        row = int(i / imageHeight)
+        col = i % imageWidth
+
+        if(pixels[i] == 0):
+            lLeft = None
+            aboveList[col] = None
+
+        elif(pixels[i] != 0): # Only do something if a passage is found
+            
+            left = pixels[i-1]
+            right = pixels[i+1]
+
+            up = 0
+            down = 0
+            if(i > imageWidth):
+                up = pixels[i-imageWidth]
+            if(i < (imageWidth * imageHeight) - imageWidth):
+                down = pixels[i+imageWidth]
+
+            # determine if important
+            hPassage = int((left + right) / 255)
+            vPassage = int((up + down) / 255)
+            # print("Pos: ", row, col)
+            # print("pCount: ", hPassage, vPassage)
+            
+            if(hPassage == 1 or vPassage == 1 or (hPassage + vPassage == 4)):
+                newPoint = Point(row, col)
+
+                if(lLeft != None):
+                    lLeft.neighbors[1] = newPoint
+                    newPoint.neighbors[0] = lLeft
+                    
+
+                if(aboveList[col] != None):
+                    newPoint.neighbors[2] = aboveList[col]
+                    aboveList[col].neighbors[3] = newPoint
+                
+                if(row == imageHeight-1):
+                    newPoint.isFinish = True
+                    mazeEnd = newPoint
+                
+                
+                lLeft = newPoint
+                aboveList[col] = newPoint
+                createdPoints.append(newPoint)
 
 
 def breadthFirstSearch():
@@ -76,31 +139,30 @@ def breadthFirstSearch():
     prev = [None] * (imageHeight * imageWidth)
     visited = [False] * (imageHeight * imageWidth)
 
-    visited[startPoint.getRow() * imageWidth + startPoint.getCol()] = True
+    visited[startPoint.row * imageWidth + startPoint.col] = True
 
     completed = False
 
     while len(queue) > 0:
         cur = queue.pop()
-        if(cur.getIsFinish()):
+        if(cur.isFinish):
             completed = True
             break
         
         for n in cur.neighbors:
             if n != None:
-                npos = n.getRow() * imageWidth + n.getCol()
+                npos = n.row * imageWidth + n.col
                 if visited[npos] == False:
                     queue.appendleft(n)
                     visited[npos] = True
                     prev[npos] = cur
 
 
-    print('as')
     path = deque()
     cur = endPoint
     while (cur != None):
         path.appendleft(cur)
-        cur = prev[cur.getRow() * imageWidth + cur.getCol()]
+        cur = prev[cur.row * imageWidth + cur.col]
         
 
     return path
@@ -222,30 +284,30 @@ def pathToBitmap(image, arr, path):
 
     # Draw in between points
     for i in range(len(path) - 1):
-        hDif = path[i+1].getCol() - path[i].getCol()
-        vDif = path[i+1].getRow() - path[i].getRow()
+        hDif = path[i+1].col - path[i].col
+        vDif = path[i+1].row - path[i].row
         # print(hDif, vDif)
 
         if(hDif != 0): # the two points connect horizontally
             if(hDif < 0):
                 while hDif != 0:
-                    arr[path[i].getCol() + hDif +1, path[i].getRow()] = (255, 0, 0)
+                    arr[path[i].col + hDif +1, path[i].row] = (255, 0, 0)
                     hDif += 1
             if(hDif > 0):
                 while hDif != 0:
-                    arr[path[i].getCol() + hDif-1, path[i].getRow()] = (255, 0, 0)
+                    arr[path[i].col + hDif-1, path[i].row] = (255, 0, 0)
                     hDif -= 1
         elif(vDif != 0):
             if(vDif < 0):
                 while vDif != 0:
-                    arr[path[i].getCol(), path[i].getRow() + vDif+1] = (255, 0, 0)
+                    arr[path[i].col, path[i].row + vDif+1] = (255, 0, 0)
                     vDif += 1
             if(vDif > 0):
                 while vDif != 0:
-                    arr[path[i].getCol(), path[i].getRow() + vDif-1] = (255, 0, 0)
+                    arr[path[i].col, path[i].row + vDif-1] = (255, 0, 0)
                     vDif -= 1
 
-    arr[path[len(path)-1].getCol(), path[len(path)-1].getRow()] = (255, 0, 0)
+    arr[path[len(path)-1].col, path[len(path)-1].row] = (255, 0, 0)
 
     image.save("./Results/" + imageName + "_path.png")
 
