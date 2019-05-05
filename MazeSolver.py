@@ -1,23 +1,30 @@
 from PIL import Image
 from Point import Point
+import time
+import copy
 
-imagePath = "./Mazes/999x999.bmp"
+imagePath = "./Mazes/4999x4999.bmp"
 
 createdPoints = []
+loopOperations = 0
 
+lastLeft = (-1, -1) # (col, index in created points)
+lastSeenVertical = [] # [(row, index in created points)]
 
 def startSolver():
     # First, we need to import an image
     # TODO add asking what size to pick when starting the program
 
+    global lastSeenVertical
+
     image = Image.open(imagePath)
     imageWidth, imageHeight = image.size
 
-    # pixels = image.convert('RGB').load()
     pixels = image.load()
-    # image.show()
-
     mazeArray = []
+    
+
+    timeStart = time.time()
 
     for i in range(imageHeight):
         rowArray = []
@@ -25,129 +32,152 @@ def startSolver():
             rowArray.append(pixels[k, i])
         mazeArray.append(rowArray)
 
-    newArr, importantPoints = findImportantPointsInMaze(mazeArray)
+    print("--- Maze array creation = %s seconds ---" % (time.time() - timeStart))
+
+    timeStart = time.time()
+
+
+    newArr = findImportantPointsInMaze(mazeArray)
+
+    print("--- Find important points = %s seconds ---" % (time.time() - timeStart))
+    
+    # Fill last seen array
+    
+
+    timeStart = time.time()
+
+    lastSeenVertical = [(-1, -1)] * len(newArr)
+
     # printArray(newArr)
-    print(len(importantPoints))
-    # createGraph(newArr, importantPoints)
-    print(len(createdPoints))
+
+    connectPoints(newArr)
+
+    print("--- Connect Points = %s seconds ---" % (time.time() - timeStart))
+
+    print("Number of loop Operations = " + str(loopOperations))
+
+    # for point in createdPoints:
+    #     print(point)
 
 
-def createGraph(arr, importantPoints):
+def connectPointsSingle(arr, row, col):
+    # printArray(arr)
+    # if(arr[row][col] == 2):
+    #     # First make a new point
+    #     newPoint = Point(row, col)
+    #     createdPoints.append(newPoint)
+
+        
+
+    #     # If last left is -1, this is the first point in the row
+    #     if(lastLeft[0] != -1):
+    #         # loop backwards to make sure the points can connect
+    #         tempCol = col -1
+    #         doesConnect = True
+    #         while tempCol != lastLeft[0]:
+    #             loopOperations += 1
+    #             if(arr[row][tempCol] == 1):
+    #                 doesConnect = False
+    #             tempCol -= 1
+
+    #         if(doesConnect):
+    #             # Set links between the two points
+    #             createdPoints[len(createdPoints) - 1].setLeft(createdPoints[lastLeft[1]])
+    #             createdPoints[lastLeft[1]].setRight(createdPoints[len(createdPoints) - 1])
+
+    #     lastLeft = (col, len(createdPoints) - 1)
+        
+    #     # If last seen vertical is -1, this is the first point in the col
+    #     if(lastSeenVertical[col][0] != -1):
+    #         # loop upward to make sure the points can connect
+    #         tempRow = row - 1
+    #         doesConnect = True
+    #         while tempRow != lastSeenVertical[col][0]:
+    #             loopOperations += 1
+    #             if(arr[tempRow][col] == 1):
+    #                 doesConnect = False
+    #             tempRow -= 1
+
+    #         if(doesConnect):
+    #             createdPoints[len(createdPoints) - 1].setUp(createdPoints[lastSeenVertical[col][1]])
+    #             createdPoints[lastSeenVertical[col][1]].setDown(createdPoints[len(createdPoints) - 1])
+
+    #     lastSeenVertical[col] = (row, len(createdPoints) - 1)
+    print()
+
+def connectPoints(arr):
     # TODO maybe make a better algorithm
+    global lastLeft
+    global loopOperations
 
-    # Go to each point and find if it's connect in each direction
-    # Return a graph object representing the important points in the maze
-    for iPoint in importantPoints:
-        newPointObj = Point(iPoint[0], iPoint[1])
-        createdPoints.append(newPointObj)
+    for row in range(len(arr)):
+        for col in range(len(arr[row])):
+            if(arr[row][col] == 2):
+                # First make a new point
+                newPoint = Point(row, col)
+                createdPoints.append(newPoint)
 
-        newPointObj.setLeft(findClosestLeftPoint(arr, newPointObj))
-        newPointObj.setRight(findClosestRightPoint(arr, newPointObj))
-        newPointObj.setUp(findClosestUpPoint(arr, newPointObj))
-        newPointObj.setDown(findClosestDownPoint(arr, newPointObj))
+                # If last left is -1, this is the first point in the row
+                if(lastLeft[0] != -1):
+                    # loop backwards to make sure the points can connect
+                    tempCol = col -1
+                    doesConnect = True
+                    while tempCol != lastLeft[0]:
+                        loopOperations += 1
+                        if(arr[row][tempCol] == 1):
+                            doesConnect = False
+                        tempCol -= 1
 
-        print(newPointObj)
+                    if(doesConnect):
+                        # Set links between the two points
+                        createdPoints[len(createdPoints) - 1].setLeft(createdPoints[lastLeft[1]])
+                        createdPoints[lastLeft[1]].setRight(createdPoints[len(createdPoints) - 1])
+
+                lastLeft = (col, len(createdPoints) - 1)
+                # print(col)
+                # print(lastSeenVertical)
+                
+                # If last seen vertical is -1, this is the first point in the col
+                if(lastSeenVertical[col][0] != -1):
+                    # loop upward to make sure the points can connect
+                    tempRow = row - 1
+                    doesConnect = True
+                    while tempRow != lastSeenVertical[col][0]:
+                        loopOperations += 1
+                        if(arr[tempRow][col] == 1):
+                            doesConnect = False
+                        tempRow -= 1
+
+                    if(doesConnect):
+                        createdPoints[len(createdPoints) - 1].setUp(createdPoints[lastSeenVertical[col][1]])
+                        createdPoints[lastSeenVertical[col][1]].setDown(createdPoints[len(createdPoints) - 1])
+
+                lastSeenVertical[col] = (row, len(createdPoints) - 1)
+
+        lastLeft = (-1, -1)
+    
+
+    
+
+         
         
-
-
-def findClosestLeftPoint(arr, point):
-    # We know that an important point cannot be on 0th col of the maze, so we don't check for it
-    col = point.getCol()-1
-    row = point.getRow()
-
-    while col > 0:
-        if(arr[row][col] == 1):
-            return None
-        elif(arr[row][col] == 2):
-            createdPoint = findPointInCreatedPoints(row, col)
-
-            if(createdPoint is None):
-                return Point(row, col)
-            else:
-                return createdPoint
-
-        col -= 1
-
-
-def findClosestRightPoint(arr, point):
-    # We know that an important point cannot be on the last col of the maze, so we don't check for it
-    col = point.getCol() + 1
-    row = point.getRow()
-
-    while col < len(arr[row]):
-        if(arr[row][col] == 1):
-            return None
-        elif(arr[row][col] == 2):
-            createdPoint = findPointInCreatedPoints(row, col)
-
-            if(createdPoint is None):
-                return Point(row, col)
-            else:
-                return createdPoint
-
-        col += 1
-
-
-def findClosestUpPoint(arr, point):
-    # We know that an important point cannot be on 0th col of the maze, so we don't check for it
-    col = point.getCol()
-    row = point.getRow()-1
-
-    while row >= 0:
-        if(arr[row][col] == 1):
-            return None
-        elif(arr[row][col] == 2):
-            createdPoint = findPointInCreatedPoints(row, col)
-
-            if(createdPoint is None):
-                return Point(row, col)
-            else:
-                return createdPoint
-        
-        row -= 1
-
-def findClosestDownPoint(arr, point):
-    # We know that an important point cannot be on 0th col of the maze, so we don't check for it
-    col = point.getCol()
-    row = point.getRow()+1
-
-    while row < len(arr):
-        if(arr[row][col] == 1):
-            return None
-        elif(arr[row][col] == 2):
-            createdPoint = findPointInCreatedPoints(row, col)
-
-            if(createdPoint is None):
-                return Point(row, col)
-            else:
-                return createdPoint
-        
-        row += 1
-
-def findPointInCreatedPoints(row, col):
-    for point in createdPoints:
-        if(point.getRow() == row and point.getCol() == col):
-            return point
-
-    return None
 
 
 def findImportantPointsInMaze(arr):
+    global loopOperations
     # Go through each point and check if it's an important point. If it is, make it a 2 in a new maze
     newMaze = []
-    importantPoints = []
     for row in range(len(arr)):
         newRow = []
         for col in range(len(arr[row])):
             if(arr[row][col] != 1 and isImportantPoint(arr, row, col)):
                 newRow.append(2)
-                importantPoints.append([row, col])
             else:
                 newRow.append(arr[row][col])
 
         newMaze.append(newRow)
 
-    return newMaze, importantPoints
+    return newMaze
 
 
 def isImportantPoint(arr, row, col):
@@ -157,6 +187,7 @@ def isImportantPoint(arr, row, col):
     # Keep track of passages on the horizontal and vertical planes
     hPassages = 0
     vPassages = 0
+    # printArray(arr)
 
     # Check if point isn't on the edge of the maze, then check for a passage
     # Vertical passages
@@ -170,6 +201,8 @@ def isImportantPoint(arr, row, col):
         hPassages += 1
     if(col != len(arr)-1 and arr[row][col+1] == 0):
         hPassages += 1
+
+    # print(row, col, hPassages, vPassages)
 
     # Do final check on number of passages
     if(hPassages == 1 or vPassages == 1 or (hPassages + vPassages) == 4):

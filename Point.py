@@ -34,6 +34,10 @@ class Point:
         return resStr
 
 
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return self.col == other.getCol() and self.row == other.getRow()
+
     def getPointString(self):
         return "[" + str(self.row) + ", " + str(self.col) + "]"
 
