@@ -3,7 +3,7 @@ from Point import Point
 from collections import deque
 import time
 
-imagePath = "./Mazes/4999x4999.png"
+imagePath = "./Mazes/10k.png"
 imageName = imagePath[8:-4]
 
 createdPoints = []
