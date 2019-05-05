@@ -8,6 +8,9 @@ class Point:
         self.right = None
         self.up = None
         self.down = None
+        self.isStart = False
+        self.isFinish = False
+        self.neighbors = [self.left, self.right, self.up, self.down]
 
     def __str__(self):
         resStr = "[" + str(self.row) + ", " + str(self.col) + "] ->"
@@ -33,13 +36,24 @@ class Point:
 
         return resStr
 
-
     def __eq__(self, other):
         if isinstance(other, self.__class__):
             return self.col == other.getCol() and self.row == other.getRow()
 
     def getPointString(self):
         return "[" + str(self.row) + ", " + str(self.col) + "]"
+
+    def getIsStart(self):
+        return self.isStart
+
+    def setIsStart(self, isStart):
+        self.isStart = isStart
+
+    def getIsFinish(self):
+        return self.isFinish
+
+    def setIsFinish(self, isFinish):
+        self.isFinish = isFinish
 
     def getRow(self):
         return self.row
@@ -52,24 +66,28 @@ class Point:
 
     def setLeft(self, left):
         self.left = left
+        self.neighbors[0] = left
 
     def getRight(self):
         return self.right
 
     def setRight(self, right):
         self.right = right
+        self.neighbors[1] = right
 
     def getUp(self):
         return self.up
 
     def setUp(self, up):
         self.up = up
+        self.neighbors[2] = up
 
-    def getdown(self):
+    def getDown(self):
         return self.down
 
     def setDown(self, down):
         self.down = down
+        self.neighbors[3] = down
 
 
     
