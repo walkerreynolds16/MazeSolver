@@ -3,9 +3,11 @@ from Point import Point
 from collections import deque
 import time
 import sys
+import os
 
-imagePath = "./Mazes/15k.png"
-imageName = imagePath[8:-4]
+
+mazesPath = os.path.dirname(os.path.realpath(__file__)) + "/Mazes/"
+imageName = ""
 
 createdPoints = []
 
@@ -17,14 +19,16 @@ mazeEnd = None
 
 def startSolver():
     # First, we need to import an image
-    # TODO add asking what size to pick when starting the program
-
     global lastSeenVertical, imageHeight, imageWidth
 
-    print("Image Chosen: " imageName)
+    chosenMaze = getMazeInput()
+
+    if(chosenMaze is None):
+        print("Maze not chosen. Ending program")
+        sys.exit()
 
     Image.MAX_IMAGE_PIXELS = sys.maxsize
-    image = Image.open(imagePath)
+    image = Image.open(chosenMaze)
     imageWidth, imageHeight = image.size
 
     timeStart = time.time()
@@ -45,6 +49,28 @@ def startSolver():
     newPixels = newImage.load()
     pathToBitmap(newImage, newPixels, path)
     print("--- Saving Image = %s seconds ---" % (time.time() - timeStart))
+
+def getMazeInput():
+    global imageName
+    files = []
+    print()
+    for r, d, f in os.walk(mazesPath):
+        for file in f:
+            files.append(file)
+    
+    print("***** Choose an maze to solve ******")
+    print("Possible mazes include...")
+    for f in files:
+        print(f, end=" | ")
+    print()
+
+    mInput = input()
+    
+    if(mInput in files):
+        print("Image chosen: " + mInput)
+        imageName = mInput[:-4]
+        return mazesPath + mInput
+
 
 def newMazeCreation(pixels):
     global imageWidth, imageHeight
