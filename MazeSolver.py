@@ -2,8 +2,9 @@ from PIL import Image
 from Point import Point
 from collections import deque
 import time
+import sys
 
-imagePath = "./Mazes/10k.png"
+imagePath = "./Mazes/15k.png"
 imageName = imagePath[8:-4]
 
 createdPoints = []
@@ -26,6 +27,7 @@ def startSolver():
 
     print(imageName)
 
+    Image.MAX_IMAGE_PIXELS = sys.maxsize
     image = Image.open(imagePath)
     imageWidth, imageHeight = image.size
 
@@ -65,10 +67,13 @@ def startSolver():
 
 def newMazeCreation(pixels):
     global imageWidth, imageHeight
+    # Last left variable. Keeps track of the last left node found so it can be connected to a new node
+    # Used to connect nodes from left and right
     lLeft = None
+    # Above list keeps track of the last node created in each col. Used to connect nodes from above and below
     aboveList = [None] * imageWidth
     
-
+    # Go through the top of the maze and find the beginning of the maze and set all the variables
     for topRowIndex in range(imageWidth):
         if(pixels[topRowIndex] == 255): # Start of the maze
             newPoint = Point(0, topRowIndex)
@@ -76,23 +81,22 @@ def newMazeCreation(pixels):
             mazeStart = newPoint
             aboveList[topRowIndex] = newPoint
             createdPoints.append(newPoint)
+            break
 
-        # if(pixels[imageWidth * (imageHeight - 1) + topRowIndex] == 255): # End of the Maze
-        #     newPoint = Point(imageHeight - 1, topRowIndex)
-        #     newPoint.isFinish = True
-        #     mazeEnd = newPoint
-        #     createdPoints.append(newPoint)
-
+    # Go through each point in the maze other than the top row and find important parts of the maze
     for i in range(imageWidth, len(pixels)):
+        # Since the pixel array is a 1 dimension representation of the image, we can calculated the row and col by doing a little math
         row = int(i / imageHeight)
         col = i % imageWidth
 
+        # if a pixel has a value of 0, its a wall and the last left and last above nodes can be reset
         if(pixels[i] == 0):
             lLeft = None
             aboveList[col] = None
 
-        elif(pixels[i] != 0): # Only do something if a passage is found
-            
+        # If the pixel value is not 0, then a passage has been found, but not all passages are important
+        elif(pixels[i] != 0): 
+            # get the pixels values around the current pixel
             left = pixels[i-1]
             right = pixels[i+1]
 
@@ -103,29 +107,32 @@ def newMazeCreation(pixels):
             if(i < (imageWidth * imageHeight) - imageWidth):
                 down = pixels[i+imageWidth]
 
-            # determine if important
+            # Determine if current pixel is important
+            # If a point in the maze only has 1 horizontal or vertical passage, then it's an important point
+            # Also if a point has a passage on all 4 sides, it's important point
             hPassage = int((left + right) / 255)
-            vPassage = int((up + down) / 255)
-            # print("Pos: ", row, col)
-            # print("pCount: ", hPassage, vPassage)
-            
+            vPassage = int((up + down) / 255)            
             if(hPassage == 1 or vPassage == 1 or (hPassage + vPassage == 4)):
+                # Current pixel is important, make a new node and connect it to other nodes
                 newPoint = Point(row, col)
 
+                # If last left is None, then the current node can't be connect to the left
                 if(lLeft != None):
+                    # If there is a last left, connect the current node's left to last left and connect last left's right node to current
                     lLeft.neighbors[1] = newPoint
                     newPoint.neighbors[0] = lLeft
                     
-
+                # Same thing as connecting left node, do for the above node
                 if(aboveList[col] != None):
                     newPoint.neighbors[2] = aboveList[col]
                     aboveList[col].neighbors[3] = newPoint
                 
+                # Check if the current node is the end of the maze
                 if(row == imageHeight-1):
                     newPoint.isFinish = True
                     mazeEnd = newPoint
                 
-                
+                # Set all variables for the next possible node
                 lLeft = newPoint
                 aboveList[col] = newPoint
                 createdPoints.append(newPoint)
@@ -166,109 +173,6 @@ def breadthFirstSearch():
         
 
     return path
-
-
-def connectPoints(arr):
-    # TODO maybe make a better algorithm
-    global lastLeft
-    global loopOperations
-
-    for row in range(len(arr)):
-        for col in range(len(arr[row])):
-            if(arr[row][col] == 2):
-                # First make a new point
-                newPoint = Point(row, col)
-                if(row == 0):
-                    newPoint.setIsStart(True)
-                elif(row == len(arr) - 1):
-                    newPoint.setIsFinish(True)
-                createdPoints.append(newPoint)
-
-                # If last left is -1, this is the first point in the row
-                if(lastLeft[0] != -1):
-                    # loop backwards to make sure the points can connect
-                    # tempCol = col -1
-                    # doesConnect = True
-                    # while tempCol != lastLeft[0]:
-                    #     loopOperations += 1
-                    #     if(arr[row][tempCol] == 1):
-                    #         doesConnect = False
-                    #     tempCol -= 1
-
-                    # if(doesConnect):
-                        # Set links between the two points
-                    createdPoints[len(createdPoints) - 1].setLeft(createdPoints[lastLeft[1]])
-                    createdPoints[lastLeft[1]].setRight(createdPoints[len(createdPoints) - 1])
-
-                lastLeft = (col, len(createdPoints) - 1)
-                
-                # If last seen vertical is -1, this is the first point in the col
-                if(lastSeenVertical[col][0] != -1):
-                    # loop upward to make sure the points can connect
-                    tempRow = row - 1
-                    doesConnect = True
-                    while tempRow != lastSeenVertical[col][0]:
-                        loopOperations += 1
-                        if(arr[tempRow][col] == 1):
-                            doesConnect = False
-                        tempRow -= 1
-
-                    if(doesConnect):
-                        createdPoints[len(createdPoints) - 1].setUp(createdPoints[lastSeenVertical[col][1]])
-                        createdPoints[lastSeenVertical[col][1]].setDown(createdPoints[len(createdPoints) - 1])
-
-                lastSeenVertical[col] = (row, len(createdPoints) - 1)
-            elif(arr[row][col] == 1):
-                lastLeft = (-1, -1)
-        lastLeft = (-1, -1)
-
-
-def findImportantPointsInMaze(arr):
-    global loopOperations
-    # Go through each point and check if it's an important point. If it is, make it a 2 in a new maze
-    newMaze = []
-    for row in range(len(arr)):
-        newRow = []
-        for col in range(len(arr[row])):
-            if(arr[row][col] != 1 and isImportantPoint(arr, row, col)):
-                newRow.append(2)
-            else:
-                newRow.append(arr[row][col])
-
-        newMaze.append(newRow)
-
-    return newMaze
-
-
-def isImportantPoint(arr, row, col):
-    # Algorithm: If a point in the maze only has 1 horizontal or vertical passage, then it's an important point
-    #            Also if a point has a passage on all 4 sides, it's important point
-
-    # Keep track of passages on the horizontal and vertical planes
-    hPassages = 0
-    vPassages = 0
-    # printArray(arr)
-
-    # Check if point isn't on the edge of the maze, then check for a passage
-    # Vertical passages
-    if(row != 0 and arr[row-1][col] == 0):
-        vPassages += 1
-    if(row != len(arr)-1 and arr[row+1][col] == 0):
-        vPassages += 1
-
-    # Horizontal passages
-    if(col != 0 and arr[row][col-1] == 0):
-        hPassages += 1
-    if(col != len(arr)-1 and arr[row][col+1] == 0):
-        hPassages += 1
-
-    # print(row, col, hPassages, vPassages)
-
-    # Do final check on number of passages
-    if(hPassages == 1 or vPassages == 1 or (hPassages + vPassages) == 4):
-        return True
-
-    return False
 
 
 def printArray(arr):
