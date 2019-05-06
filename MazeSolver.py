@@ -8,10 +8,6 @@ imagePath = "./Mazes/15k.png"
 imageName = imagePath[8:-4]
 
 createdPoints = []
-loopOperations = 0
-
-lastLeft = (-1, -1) # (col, index in created points)
-lastSeenVertical = [] # [(row, index in created points)]
 
 imageWidth = 0
 imageHeight = 0
@@ -25,7 +21,7 @@ def startSolver():
 
     global lastSeenVertical, imageHeight, imageWidth
 
-    print(imageName)
+    print("Image Chosen: " imageName)
 
     Image.MAX_IMAGE_PIXELS = sys.maxsize
     image = Image.open(imagePath)
@@ -33,37 +29,22 @@ def startSolver():
 
     timeStart = time.time()
 
-    # OLD STUFF
-    # pixels = image.load()
-    # mazeArray = []
-    # for i in range(imageHeight):
-    #     rowArray = []
-    #     for k in range(imageWidth):
-    #         rowArray.append(pixels[k, i])
-    #     mazeArray.append(rowArray)
-
     pixels = list(image.getdata(0))
     maze = newMazeCreation(pixels)
-
-    # for i in createdPoints:
-    #     print(i)
-
-
     print("--- Maze array creation = %s seconds ---" % (time.time() - timeStart))
 
     print("Node Count: " + str(len(createdPoints)))
-    
-    # print("Number of loop Operations = " + str(loopOperations))
 
     timeStart = time.time()
     path = breadthFirstSearch()
     print("--- Breadth First Search = %s seconds ---" % (time.time() - timeStart))
 
     # Save path to bitmap
+    timeStart = time.time()
     newImage = image.convert('RGB')
     newPixels = newImage.load()
     pathToBitmap(newImage, newPixels, path)
-
+    print("--- Saving Image = %s seconds ---" % (time.time() - timeStart))
 
 def newMazeCreation(pixels):
     global imageWidth, imageHeight
